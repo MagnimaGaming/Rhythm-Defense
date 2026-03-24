@@ -3,36 +3,41 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-[System.Serializable]
-public class EnvironmentSet
-{
-  public GameObject environment;
-  public Material skybox;
-}
-
 public class environmentmanager : MonoBehaviour
 {
-  public EnvironmentSet Better;
-  public EnvironmentSet Good;
-  public EnvironmentSet Perfect;
+  [Header("Environments")]
+  public GameObject betterEnv;
+  public GameObject goodEnv;
+  public GameObject perfectEnv;
+  public Transform bettermid;
+  public Transform goodmid;
+
+  public Material betterSkybox;
+  public Material goodSkybox;
+  public Material perfectSkybox;
+
+  [Header("UI")]
   public TextMeshProUGUI scoreText;
+  public GameObject perfectPanel;
   public GameObject scorePopup;
 
-  [SerializeField] private Transform playerTf;
+  [Header("Player")]
+  public Transform playerTf;
 
-  int Score = 0;
-  float movetime = 0f;
-  float idletime = 0f;
+  int score = 0;
+  float moveTime = 0, idleTime = 0;
+  bool envchanged = false;
 
-  EnvironmentSet currentEnv;
+  GameObject currentEnv;
 
   void Start()
   {
-    Better.environment.SetActive(false);
-    Good.environment.SetActive(false);
-    Perfect.environment.SetActive(false);
+    betterEnv.SetActive(false);
+    goodEnv.SetActive(false);
+    perfectEnv.SetActive(false);
 
-    ApplyEnvironment(Better);
+
+
   }
 
   void Update()
@@ -42,71 +47,105 @@ public class environmentmanager : MonoBehaviour
   }
 
   void HandleMovement()
-  {
-    bool movementkey = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D);
 
-    if (movementkey)
+  {
+    bool move = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.RightArrow);
+
+    if (move)
     {
-      movetime += 2 * Time.deltaTime;
-      idletime = 0f;
+      moveTime += 2 * Time.deltaTime;
+      idleTime = 0f;
     }
     else
     {
-      idletime += Time.deltaTime;
-      movetime = 0f;
+      idleTime += Time.deltaTime;
+      moveTime = 0f;
     }
 
-    if (movetime > 5f)
+    if (moveTime > 5f)
     {
-      Score += 10;
-      movetime = 0f;
-      scoreText.text = "Score: " + Score;
+      score += 10;
+      moveTime = 0f;
+      scoreText.text = "Score: " + score;
       StartCoroutine(ShowScorePopup("+10"));
     }
 
-    if (idletime > 5f)
+    if (idleTime > 5f)
     {
-      Score -= 10;
-      idletime = 0f;
-      scoreText.text = "Score: " + Score;
+      score -= 10;
+      idleTime = 0f;
+      scoreText.text = "Score: " + score;
       StartCoroutine(ShowScorePopup("-10"));
     }
   }
-
-  void UpdateEnvironment()
-  {
-    EnvironmentSet targetEnv;
-
-    if (Score < 100)
-      targetEnv = Better;
-    else if (100 <= Score && Score < 200)
-      targetEnv = Good;
-    else
-      targetEnv = Perfect;
-    if (currentEnv != targetEnv)
-    {
-      ApplyEnvironment(targetEnv);
-    }
-  }
-
-  void ApplyEnvironment(EnvironmentSet env)
-  {
-    Better.environment.SetActive(false);
-    Good.environment.SetActive(false);
-    Perfect.environment.SetActive(false);
-    env.environment.SetActive(true);
-    Vector3 pos = env.environment.transform.position;
-    env.environment.transform.position = new Vector3(playerTf.position.x, pos.y, pos.z);
-    RenderSettings.skybox = env.skybox;
-    DynamicGI.UpdateEnvironment();
-    currentEnv = env;
-  }
-
   IEnumerator ShowScorePopup(string message)
   {
     scorePopup.SetActive(true);
     scorePopup.GetComponent<TextMeshProUGUI>().text = message;
     yield return new WaitForSeconds(1f);
     scorePopup.SetActive(false);
+  }
+  void UpdateEnvironment()
+  {
+
+
+    if (score < 100)
+    {
+      if (currentEnv != betterEnv)
+        ApplyEnvironment(betterEnv, betterSkybox);
+      if (envchanged)
+      {
+        playerTf.position = bettermid.position;
+        envchanged = false;
+      }
+
+
+    }
+    else if (score < 200)
+    {
+      if (currentEnv != goodEnv)
+        ApplyEnvironment(goodEnv, goodSkybox);
+      StartCoroutine(ShowPerfectPanel());
+      if (envchanged)
+      {
+        playerTf.position = goodmid.position;
+        envchanged = false;
+      }
+
+
+    }
+    else
+    {
+      if (currentEnv != perfectEnv)
+      {
+        ApplyEnvironment(perfectEnv, perfectSkybox);
+        StartCoroutine(ShowPerfectPanel());
+      }
+    }
+  }
+
+
+  void ApplyEnvironment(GameObject env, Material skybox)
+  {
+
+    if (env == null) return;
+    betterEnv.SetActive(false);
+    goodEnv.SetActive(false);
+    perfectEnv.SetActive(false);
+    Vector3 envPos = env.transform.position;
+    env.transform.position = new Vector3(playerTf.position.x, envPos.y, envPos.z);
+
+    env.SetActive(true);
+    RenderSettings.skybox = skybox;
+
+    currentEnv = env;
+    envchanged = true;
+  }
+
+  IEnumerator ShowPerfectPanel()
+  {
+    perfectPanel.SetActive(true);
+    yield return new WaitForSeconds(1f);
+    perfectPanel.SetActive(false);
   }
 }
