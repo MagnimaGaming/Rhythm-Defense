@@ -54,15 +54,7 @@ public class PlayerMov : MonoBehaviour
             Input.GetKey(KeyCode.Q) ||
             Input.GetKey(KeyCode.E);
 
-        if (isMoving)
-        {
-            if (!audioSource.isPlaying)
-                audioSource.Play();
-        }
-        else
-        {
-            audioSource.Stop();
-        }
+
 
         if (!Input.anyKey)
             animator.SetTrigger("Idle");
